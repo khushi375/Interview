@@ -11,7 +11,7 @@ import { useEffect } from 'react'
 import axios from 'axios'
 import { useDispatch } from 'react-redux'
 import { setUserData } from './redux/userSlice'
-export const ServerUrl = import.meta.env.VITE_SERVER_URL || ''
+export const ServerUrl = "https://interview-e2zw.onrender.com"
 
 
 function App() {

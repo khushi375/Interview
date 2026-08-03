@@ -50,17 +50,27 @@ export const analyzeResume = async (req, res) => {
 
         const aiResponse = await askAi(messages);
 
+        const extractJsonObject = (text) => {
+            const firstOpen = text.indexOf("{");
+            if (firstOpen === -1) return null;
+            let depth = 0;
+            for (let i = firstOpen; i < text.length; i++) {
+                if (text[i] === "{") depth++;
+                if (text[i] === "}") {
+                    depth--;
+                    if (depth === 0) {
+                        return text.slice(firstOpen, i + 1);
+                    }
+                }
+            }
+            return null;
+        };
+
         let parsed;
         try {
             parsed = JSON.parse(aiResponse);
         } catch (parseError) {
-            const jsonStart = aiResponse.indexOf("{");
-            const jsonEnd = aiResponse.lastIndexOf("}");
-            const jsonString =
-                jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart
-                    ? aiResponse.slice(jsonStart, jsonEnd + 1)
-                    : aiResponse;
-
+            const jsonString = extractJsonObject(aiResponse) || aiResponse;
             try {
                 parsed = JSON.parse(jsonString);
             } catch (fallbackError) {

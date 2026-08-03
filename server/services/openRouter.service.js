@@ -29,8 +29,10 @@ export const askAi=async (messages) => {
         }
         return content;
     } catch (error) {
-        console.error("OpenRouter Error:",error.response?.data||error.message);
-        throw new Error("OpenRouter API Error");
+        const errorDetail = error.response?.data || error.message || "Unknown OpenRouter error";
+        console.error("OpenRouter Error:", errorDetail);
+        const detailString = typeof errorDetail === "string" ? errorDetail : JSON.stringify(errorDetail);
+        throw new Error(`OpenRouter API Error: ${detailString}`);
     }
     
 }

@@ -10,6 +10,12 @@ export const analyzeResume = async (req, res) => {
             return res.status(400).json({ message: "Resume required" });
         }
         const filepath = req.file.path
+        console.log("Resume upload file:", {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            path: req.file.path
+        });
 
         const fileBuffer = await fs.promises.readFile(filepath)
         const uint8Array = new Uint8Array(fileBuffer)
@@ -48,6 +54,8 @@ export const analyzeResume = async (req, res) => {
             }
         ];
 
+        console.log("Resume analysis request length:", resumeText.length);
+        console.log("Resume file path:", filepath);
         const aiResponse = await askAi(messages);
 
         const extractJsonObject = (text) => {

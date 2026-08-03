@@ -49,13 +49,37 @@ export const analyzeResume = async (req, res) => {
         ];
 
         const aiResponse = await askAi(messages);
-        const parsed = JSON.parse(aiResponse);
-        fs.unlinkSync(filepath)
+
+        let parsed;
+        try {
+            parsed = JSON.parse(aiResponse);
+        } catch (parseError) {
+            const jsonStart = aiResponse.indexOf("{");
+            const jsonEnd = aiResponse.lastIndexOf("}");
+            const jsonString =
+                jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart
+                    ? aiResponse.slice(jsonStart, jsonEnd + 1)
+                    : aiResponse;
+
+            try {
+                parsed = JSON.parse(jsonString);
+            } catch (fallbackError) {
+                console.error("Resume AI parse error:", fallbackError.message);
+                console.error("Resume AI raw response:", aiResponse);
+                throw new Error("Unable to parse resume analysis response from AI.");
+            }
+        }
+
+        if (!parsed || typeof parsed !== "object") {
+            throw new Error("Parsed resume analysis response is invalid.");
+        }
+
+        fs.unlinkSync(filepath);
         res.json({
-            role: parsed.role,
-            experience: parsed.experience,
-            projects: parsed.projects,
-            skills: parsed.skills,
+            role: parsed.role || "",
+            experience: parsed.experience || "",
+            projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+            skills: Array.isArray(parsed.skills) ? parsed.skills : [],
             resumeText
         });
 

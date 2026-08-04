@@ -1,10 +1,34 @@
 import fs from 'fs';
 import * as pdfParseModule from 'pdf-parse';
+import { PdfReader } from 'pdfreader';
 import { askAi } from "../services/openRouter.service.js";
 import User from "../models/user.model.js";
 import Interview from "../models/interview.model.js"
 
 const pdfParse = pdfParseModule.default || pdfParseModule;
+
+const extractTextWithPdfReader = (filepath) => {
+    return new Promise((resolve, reject) => {
+        const rows = {};
+        new PdfReader().parseFileItems(filepath, (err, item) => {
+            if (err) {
+                return reject(err);
+            }
+            if (!item) {
+                const text = Object.keys(rows)
+                    .sort((a, b) => parseFloat(a) - parseFloat(b))
+                    .map(key => rows[key].join(' '))
+                    .join('\n');
+                return resolve(text);
+            }
+            if (item.text) {
+                const y = item.y || 0;
+                rows[y] = rows[y] || [];
+                rows[y].push(item.text);
+            }
+        });
+    });
+};
 
 export const analyzeResume = async (req, res) => {
     try {
@@ -20,20 +44,32 @@ export const analyzeResume = async (req, res) => {
         });
 
         const fileBuffer = await fs.promises.readFile(filepath)
-        let parsedPdf;
+        let resumeText = "";
+
         try {
-            parsedPdf = await pdfParse(fileBuffer)
+            const parsedPdf = await pdfParse(fileBuffer)
+            resumeText = (parsedPdf?.text || "").replace(/\s+/g, " ").trim();
         } catch (pdfError) {
-            console.error("Resume PDF parse error:", pdfError);
+            console.warn("pdf-parse failed, trying pdfreader fallback:", pdfError?.message || pdfError);
+        }
+
+        if (!resumeText) {
+            try {
+                const fallbackText = await extractTextWithPdfReader(filepath);
+                resumeText = (fallbackText || "").replace(/\s+/g, " ").trim();
+            } catch (fallbackError) {
+                console.error("Resume PDF fallback parse error:", fallbackError);
+                if (req.file && fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                }
+                return res.status(400).json({ message: "Uploaded resume must be a valid PDF file." });
+            }
+        }
+
+        if (!resumeText) {
             if (req.file && fs.existsSync(req.file.path)) {
                 fs.unlinkSync(req.file.path);
             }
-            return res.status(400).json({ message: "Uploaded resume must be a valid PDF file." });
-        }
-
-        let resumeText = (parsedPdf?.text || "").replace(/\s+/g, " ").trim();
-
-        if (!resumeText) {
             return res.status(400).json({ message: "Unable to extract text from the uploaded resume." });
         }
 

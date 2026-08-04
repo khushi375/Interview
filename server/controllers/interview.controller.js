@@ -1,8 +1,10 @@
 import fs from 'fs';
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import * as pdfParseModule from 'pdf-parse';
 import { askAi } from "../services/openRouter.service.js";
 import User from "../models/user.model.js";
 import Interview from "../models/interview.model.js"
+
+const pdfParse = pdfParseModule.default || pdfParseModule;
 
 export const analyzeResume = async (req, res) => {
     try {
@@ -18,20 +20,12 @@ export const analyzeResume = async (req, res) => {
         });
 
         const fileBuffer = await fs.promises.readFile(filepath)
-        const uint8Array = new Uint8Array(fileBuffer)
+        const parsedPdf = await pdfParse(fileBuffer)
+        let resumeText = (parsedPdf?.text || "").replace(/\s+/g, " ").trim();
 
-        const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
-        let resumeText = "";
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const content = await page.getTextContent();
-            const pageText = content.items.map(item => item.str).join(" ");
-            resumeText += pageText + "\n";
+        if (!resumeText) {
+            throw new Error("Unable to extract text from the uploaded resume.");
         }
-
-        resumeText = resumeText
-            .replace(/\s+/g, " ")
-            .trim();
 
         const messages = [
             {

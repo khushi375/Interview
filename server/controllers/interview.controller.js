@@ -40,19 +40,18 @@ export const analyzeResume = async (req, res) => {
             path: req.file.path
         });
 
-        const fileBuffer = await fs.promises.readFile(filepath)
+        await fs.promises.readFile(filepath)
         let resumeText = "";
 
         try {
             const fallbackText = await extractTextWithPdfReader(filepath);
             resumeText = (fallbackText || "").replace(/\s+/g, " ").trim();
         } catch (fallbackError) {
-                console.error("Resume PDF fallback parse error:", fallbackError);
-                if (req.file && fs.existsSync(req.file.path)) {
-                    fs.unlinkSync(req.file.path);
-                }
-                return res.status(400).json({ message: "Uploaded resume must be a valid PDF file." });
+            console.error("Resume PDF fallback parse error:", fallbackError);
+            if (req.file && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
             }
+            return res.status(400).json({ message: "Uploaded resume must be a valid PDF file." });
         }
 
         if (!resumeText) {

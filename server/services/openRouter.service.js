@@ -8,20 +8,29 @@ export const askAi=async (messages) => {
         if(!messages||!Array.isArray(messages)||messages.length===0){
             throw new Error("Messages array is empty.");
         }
-        if(!process.env.OPENROUTER_API_KEY){
-            throw new Error("OpenRouter API key is missing. Add OPENROUTER_API_KEY to the server .env file.");
+        const openRouterKey = process.env.OPENROUTER_API_KEY;
+        const openAiKey = process.env.OPENAI_API_KEY;
+
+        if (!openRouterKey && !openAiKey) {
+            throw new Error("AI API key is missing. Set OPENROUTER_API_KEY or OPENAI_API_KEY in the server environment.");
         }
-        const response=await axios.post("https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-4o-mini",
-                messages: messages
+
+        const useOpenRouter = Boolean(openRouterKey);
+        const endpoint = useOpenRouter
+            ? "https://openrouter.ai/api/v1/chat/completions"
+            : "https://api.openai.com/v1/chat/completions";
+        const apiKey = useOpenRouter ? openRouterKey : openAiKey;
+
+        const requestBody = useOpenRouter
+            ? { model: "openai/gpt-4o-mini", messages }
+            : { model: "gpt-4o-mini", messages };
+
+        const response = await axios.post(endpoint, requestBody, {
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": 'application/json',
             },
-            {
-                headers:{
-            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            "Content-Type":'application/json',
-                
-            },});
+        });
         const content = response?.data?.choices?.[0]?.message?.content;
         if(!content|| !content.trim()){
             console.error("OpenRouter empty response:", response?.data);

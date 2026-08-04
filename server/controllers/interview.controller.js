@@ -20,11 +20,21 @@ export const analyzeResume = async (req, res) => {
         });
 
         const fileBuffer = await fs.promises.readFile(filepath)
-        const parsedPdf = await pdfParse(fileBuffer)
+        let parsedPdf;
+        try {
+            parsedPdf = await pdfParse(fileBuffer)
+        } catch (pdfError) {
+            console.error("Resume PDF parse error:", pdfError);
+            if (req.file && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(400).json({ message: "Uploaded resume must be a valid PDF file." });
+        }
+
         let resumeText = (parsedPdf?.text || "").replace(/\s+/g, " ").trim();
 
         if (!resumeText) {
-            throw new Error("Unable to extract text from the uploaded resume.");
+            return res.status(400).json({ message: "Unable to extract text from the uploaded resume." });
         }
 
         const messages = [
@@ -50,7 +60,21 @@ export const analyzeResume = async (req, res) => {
 
         console.log("Resume analysis request length:", resumeText.length);
         console.log("Resume file path:", filepath);
-        const aiResponse = await askAi(messages);
+        let aiResponse;
+        try {
+            aiResponse = await askAi(messages);
+        } catch (aiError) {
+            console.error("Resume AI error:", aiError.message || aiError);
+            fs.unlinkSync(filepath);
+            return res.json({
+                role: "",
+                experience: "",
+                projects: [],
+                skills: [],
+                resumeText,
+                warning: "Resume analysis is currently unavailable. Please fill the fields manually."
+            });
+        }
 
         const extractJsonObject = (text) => {
             const firstOpen = text.indexOf("{");
@@ -78,12 +102,29 @@ export const analyzeResume = async (req, res) => {
             } catch (fallbackError) {
                 console.error("Resume AI parse error:", fallbackError.message);
                 console.error("Resume AI raw response:", aiResponse);
-                throw new Error("Unable to parse resume analysis response from AI.");
+                fs.unlinkSync(filepath);
+                return res.json({
+                    role: "",
+                    experience: "",
+                    projects: [],
+                    skills: [],
+                    resumeText,
+                    warning: "Resume analysis returned an unexpected response. Please fill the fields manually."
+                });
             }
         }
 
         if (!parsed || typeof parsed !== "object") {
-            throw new Error("Parsed resume analysis response is invalid.");
+            console.error("Parsed resume analysis response is invalid.", aiResponse);
+            fs.unlinkSync(filepath);
+            return res.json({
+                role: "",
+                experience: "",
+                projects: [],
+                skills: [],
+                resumeText,
+                warning: "Resume analysis returned invalid data. Please fill the fields manually."
+            });
         }
 
         fs.unlinkSync(filepath);

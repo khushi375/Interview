@@ -20,10 +20,14 @@ function Step1SetUp({onStart}) {
     const [resumeText, setResumeText]=useState("");
     const [analysisDone, setAnalysisDone]=useState(false);
     const [analyzing, setAnalyzing]=useState(false);
+    const [resumeWarning, setResumeWarning]=useState("");
+    const [resumeError, setResumeError]=useState("");
 
    const handleUploadResume = async () => {
     if(!resumeFile || analyzing)return;
     setAnalyzing(true)
+    setResumeWarning("")
+    setResumeError("")
     const formdata= new FormData()
     formdata.append("resume",resumeFile)
     try {
@@ -35,12 +39,14 @@ function Step1SetUp({onStart}) {
         setProjects(result.data.projects || []);
         setSkills(result.data.skills ||[]);
         setResumeText(result.data.resumeText || "");
+        setResumeWarning(result.data.warning || "");
         setAnalysisDone(true);
 
         setAnalyzing(false);
 
     } catch (error) {
-        console.log(error)
+        console.error(error)
+        setResumeError(error?.response?.data?.message || error.message || "Failed to analyze resume.")
         setAnalyzing(false);
     }
     
@@ -206,6 +212,16 @@ const handleStart = async () => {
                </motion.div>
                )}
 
+               {resumeWarning && (
+                <div className="rounded-xl bg-yellow-100 border border-yellow-300 p-4 text-yellow-800">
+                    {resumeWarning}
+                </div>
+               )}
+               {resumeError && (
+                <div className="rounded-xl bg-red-100 border border-red-300 p-4 text-red-800">
+                    {resumeError}
+                </div>
+               )}
 
               <motion.button
               onClick={handleStart}

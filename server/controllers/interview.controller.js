@@ -1,11 +1,8 @@
 import fs from 'fs';
-import * as pdfParseModule from 'pdf-parse';
 import { PdfReader } from 'pdfreader';
 import { askAi } from "../services/openRouter.service.js";
 import User from "../models/user.model.js";
 import Interview from "../models/interview.model.js"
-
-const pdfParse = pdfParseModule.default || pdfParseModule;
 
 const extractTextWithPdfReader = (filepath) => {
     return new Promise((resolve, reject) => {
@@ -47,17 +44,9 @@ export const analyzeResume = async (req, res) => {
         let resumeText = "";
 
         try {
-            const parsedPdf = await pdfParse(fileBuffer)
-            resumeText = (parsedPdf?.text || "").replace(/\s+/g, " ").trim();
-        } catch (pdfError) {
-            console.warn("pdf-parse failed, trying pdfreader fallback:", pdfError?.message || pdfError);
-        }
-
-        if (!resumeText) {
-            try {
-                const fallbackText = await extractTextWithPdfReader(filepath);
-                resumeText = (fallbackText || "").replace(/\s+/g, " ").trim();
-            } catch (fallbackError) {
+            const fallbackText = await extractTextWithPdfReader(filepath);
+            resumeText = (fallbackText || "").replace(/\s+/g, " ").trim();
+        } catch (fallbackError) {
                 console.error("Resume PDF fallback parse error:", fallbackError);
                 if (req.file && fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);

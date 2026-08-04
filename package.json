@@ -1,0 +1,11 @@
+{
+  "name": "interview",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "start": "node server/index.js"
+  }
+}

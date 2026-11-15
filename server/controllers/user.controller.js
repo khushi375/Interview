@@ -11,6 +11,10 @@ export const getCurrentUser = async(req, res) => {
 
   }
   catch (error) {
-    res.status(500).json({ message: `failed to get current user: ${error}` });
+    console.error("Current-user lookup failed.", {
+      code: error?.code || "unknown",
+      errorName: error?.name || "Error",
+    });
+    res.status(500).json({ message: "Failed to retrieve the current user." });
   }
 }

@@ -1,6 +1,6 @@
 import React,{useState,  useEffect} from "react";
 import { useNavigate } from "react-router-dom";
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api";
 import axios from "axios";
 import { FaArrowLeft } from "react-icons/fa";
 

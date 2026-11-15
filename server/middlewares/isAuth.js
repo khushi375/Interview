@@ -3,13 +3,13 @@ import jwt from "jsonwebtoken";
 
 const isAuth = async (req, res, next) => {
     try {
-        const { token } = req.cookies || {};
+        const token = req.cookies?.token;
 
         if (!token) {
             return res.status(401).json({ message: "Authentication token is missing." });
         }
 
-        if (!process.env.JWT_SECRET) {
+        if (!process.env.JWT_SECRET?.trim()) {
             console.error("JWT_SECRET is missing in environment.");
             return res.status(500).json({ message: "Server configuration error: JWT secret missing." });
         }
@@ -17,7 +17,7 @@ const isAuth = async (req, res, next) => {
         let verifyToken;
         try {
             verifyToken = jwt.verify(token, process.env.JWT_SECRET);
-        } catch (verifyError) {
+        } catch {
             return res.status(401).json({ message: "Invalid or expired authentication token." });
         }
 
@@ -28,8 +28,8 @@ const isAuth = async (req, res, next) => {
         req.userId = verifyToken.userId;
         next();
     } catch (error) {
-        console.error("isAuth unexpected error:", error);
-        return res.status(500).json({ message: `isAuth error ${error.message || error}` });
+        console.error("Authentication middleware failed.", { code: error?.code || error?.name || "unknown" });
+        return res.status(500).json({ message: "Authentication could not be completed." });
     }
 }
 

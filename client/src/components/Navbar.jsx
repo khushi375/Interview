@@ -7,7 +7,7 @@ import {FaUserAstronaut} from "react-icons/fa"
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api";
 import { useDispatch } from "react-redux";
 import { setUserData } from "../redux/userSlice";
 import AuthModel from "../components/AuthModel"

@@ -6,7 +6,7 @@ import Timer from "./Timer"
 import {FaMicrophone , FaMicrophoneSlash} from "react-icons/fa"
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api";
 import {  BsArrowRight } from "react-icons/bs";
 
 function Step2Interview({interviewData, onFinish}) {

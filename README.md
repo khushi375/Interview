@@ -28,28 +28,24 @@ InterviewIQ is a full-stack web application that helps users prepare for technic
 ## 🛠️ Tech Stack
 
 ### Frontend
-- React.js
+- React
+- Redux Toolkit
 - Tailwind CSS
 - React Router
-- Axios
-- Context API
+- Vite
 
 ### Backend
 - Node.js
 - Express.js
-- JWT Authentication
-- Bcrypt.js
-
-### Database
-- MongoDB
-- Mongoose
+- MongoDB and Mongoose
+- Firebase Admin ID-token verification
+- JWT session cookies
 
 ### AI Integration
-- Google Gemini API *(or update with your AI provider if different)*
+- Google Gemini API
 
 ### Deployment
-- Frontend: Render
-- Backend: Render
+- Frontend and backend: Render
 - Database: MongoDB Atlas
 
 ---
@@ -82,68 +78,79 @@ InterviewIQ
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/interviewiq.git
-```
-
-```bash
-cd interviewiq
-```
-
----
-
-### Install Frontend
-
-```bash
-cd client
-npm install
-```
-
----
-
-### Install Backend
-
-```bash
-cd ../server
-npm install
+git clone https://github.com/khushi375/Interview.git
+cd Interview
+npm ci
 ```
 
 ---
 
 ## 🔑 Environment Variables
 
-Create a `.env` file inside the server directory.
+Create `server/.env` and `client/.env` using the matching example files. Keep real credentials out of Git.
 
 ```env
-PORT=5000
-
-MONGODB_URI=your_mongodb_connection_string
-
-JWT_SECRET=your_secret_key
-
-GEMINI_API_KEY=your_api_key
-
-PAYMENT_GATEWAY_KEY=your_payment_key
-
+# server/.env
+NODE_ENV=development
+PORT=8000
+MONGODB_URL=your_mongodb_connection_string
+JWT_SECRET=your_long_random_secret
+GEMINI_API_KEY=your_gemini_api_key
+FIREBASE_ADMIN_PROJECT_ID=terviewiq
+FIREBASE_ADMIN_CLIENT_EMAIL=your_firebase_service_account_email
+FIREBASE_ADMIN_PRIVATE_KEY="your_firebase_private_key_with_escaped_newlines"
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 CLIENT_URL=http://localhost:5173
+
+# client/.env
+VITE_FIREBASE_APIKEY=your_firebase_web_api_key
+VITE_FIREBASE_PROJECT_ID=terviewiq
+# Leave empty locally to use the Vite proxy; set to the API URL in production.
+VITE_API_URL=
 ```
+
+For `FIREBASE_ADMIN_PRIVATE_KEY`, use the key from a Firebase service-account JSON file; Render accepts it with `\n` between lines. Do not commit the service-account JSON or real `.env` files.
 
 ---
 
 ## ▶️ Run the Project
 
-### Backend
+Run these commands in separate terminals from the repository root:
 
 ```bash
-npm run server
+npm run dev --workspace server
 ```
-
-### Frontend
 
 ```bash
-npm run dev
+npm run dev --workspace client
 ```
 
----
+### Tests and production build
+
+```bash
+npm test --workspace server
+npm run build --workspace client
+npm run lint --workspace client
+```
+
+## 🚀 Deploy on Render
+
+Create a Web Service for the backend and a Static Site for the frontend, both connected to the `master` branch of this repository. Set each service's root directory to the repository root and enable Auto-Deploy.
+
+### Backend Web Service
+
+- Build command: `npm ci`
+- Start command: `npm start`
+- Set `NODE_ENV=production` and the server variables above. Set `CLIENT_URL` to the deployed frontend URL. Render supplies `PORT`.
+
+### Frontend Static Site
+
+- Build command: `npm ci && npm run build --workspace client`
+- Publish directory: `client/dist`
+- Set `VITE_API_URL` to the deployed backend URL, plus `VITE_FIREBASE_APIKEY` and `VITE_FIREBASE_PROJECT_ID`.
+
+Render deploys each service after a push when Auto-Deploy is enabled. Frontend `VITE_` variables are applied at build time, so redeploy the Static Site after changing them.
 
 
 ## 🚧 Future Improvements

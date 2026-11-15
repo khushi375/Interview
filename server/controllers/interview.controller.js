@@ -1,8 +1,26 @@
 import fs from 'fs';
 import { PdfReader } from 'pdfreader';
-import { askAi } from "../services/openRouter.service.js";
+import { askAi, GeminiServiceError } from "../services/gemini.service.js";
 import User from "../models/user.model.js";
 import Interview from "../models/interview.model.js"
+
+const parseJsonResponse = (response) => {
+    if (typeof response !== "string" || !response.trim()) {
+        throw new Error("AI returned an empty response.");
+    }
+
+    const jsonText = response.trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "");
+    try {
+        return JSON.parse(jsonText);
+    } catch {
+        throw new GeminiServiceError("AI returned invalid JSON.", 502);
+    }
+};
+
+const isStringArray = (value) =>
+    Array.isArray(value) && value.every(item => typeof item === "string");
 
 const extractTextWithPdfReader = (filepath) => {
     return new Promise((resolve, reject) => {
@@ -33,12 +51,6 @@ export const analyzeResume = async (req, res) => {
             return res.status(400).json({ message: "Resume required" });
         }
         const filepath = req.file.path
-        console.log("Resume upload file:", {
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            path: req.file.path
-        });
 
         await fs.promises.readFile(filepath)
         let resumeText = "";
@@ -82,13 +94,14 @@ export const analyzeResume = async (req, res) => {
             }
         ];
 
-        console.log("Resume analysis request length:", resumeText.length);
-        console.log("Resume file path:", filepath);
         let aiResponse;
         try {
-            aiResponse = await askAi(messages);
-        } catch (aiError) {
-            console.error("Resume AI error:", aiError.message || aiError);
+            aiResponse = await askAi(messages, { responseMimeType: "application/json" });
+        } catch (error) {
+            console.error("Resume analysis Gemini request failed:", {
+                statusCode: error?.statusCode || 500,
+                message: error?.message || "Unknown Gemini error",
+            });
             fs.unlinkSync(filepath);
             return res.json({
                 role: "",
@@ -96,50 +109,33 @@ export const analyzeResume = async (req, res) => {
                 projects: [],
                 skills: [],
                 resumeText,
-                warning: "Resume analysis is currently unavailable. Please fill the fields manually."
+                warning: "PDF text was extracted, but AI analysis is temporarily unavailable. Retry or fill the fields manually."
             });
         }
 
-        const extractJsonObject = (text) => {
-            const firstOpen = text.indexOf("{");
-            if (firstOpen === -1) return null;
-            let depth = 0;
-            for (let i = firstOpen; i < text.length; i++) {
-                if (text[i] === "{") depth++;
-                if (text[i] === "}") {
-                    depth--;
-                    if (depth === 0) {
-                        return text.slice(firstOpen, i + 1);
-                    }
-                }
-            }
-            return null;
-        };
-
         let parsed;
         try {
-            parsed = JSON.parse(aiResponse);
-        } catch (parseError) {
-            const jsonString = extractJsonObject(aiResponse) || aiResponse;
-            try {
-                parsed = JSON.parse(jsonString);
-            } catch (fallbackError) {
-                console.error("Resume AI parse error:", fallbackError.message);
-                console.error("Resume AI raw response:", aiResponse);
-                fs.unlinkSync(filepath);
-                return res.json({
-                    role: "",
-                    experience: "",
-                    projects: [],
-                    skills: [],
-                    resumeText,
-                    warning: "Resume analysis returned an unexpected response. Please fill the fields manually."
-                });
-            }
+            parsed = parseJsonResponse(aiResponse);
+        } catch {
+            fs.unlinkSync(filepath);
+            return res.json({
+                role: "",
+                experience: "",
+                projects: [],
+                skills: [],
+                resumeText,
+                warning: "Resume analysis returned an unexpected response. Please fill the fields manually."
+            });
         }
 
-        if (!parsed || typeof parsed !== "object") {
-            console.error("Parsed resume analysis response is invalid.", aiResponse);
+        if (
+            !parsed ||
+            typeof parsed !== "object" ||
+            typeof parsed.role !== "string" ||
+            typeof parsed.experience !== "string" ||
+            !isStringArray(parsed.projects) ||
+            !isStringArray(parsed.skills)
+        ) {
             fs.unlinkSync(filepath);
             return res.json({
                 role: "",
@@ -153,10 +149,10 @@ export const analyzeResume = async (req, res) => {
 
         fs.unlinkSync(filepath);
         res.json({
-            role: parsed.role || "",
-            experience: parsed.experience || "",
-            projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-            skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+            role: parsed.role,
+            experience: parsed.experience,
+            projects: parsed.projects,
+            skills: parsed.skills,
             resumeText
         });
 
@@ -261,14 +257,12 @@ export const generateQuestion = async (req, res) => {
         }
         const questionsArray = aiResponse
             .split("\n")
-            .map(q => q.trim())
-            .filter(q => q.length > 0)
-            .slice(0, 5);
+            .map(q => q.trim().replace(/^\s*(?:[-*]\s*|\d+[.)]\s*)/, ""))
+            .filter(q => q.length > 0);
 
-        if (questionsArray.length === 0) {
-           
-            return res.status(500).json({
-                message: "AI failed to generate questions."
+        if (questionsArray.length !== 5) {
+            return res.status(502).json({
+                message: "AI returned an invalid set of interview questions."
             });
         }
         user.credits -= 50;
@@ -296,8 +290,9 @@ export const generateQuestion = async (req, res) => {
         });
 
     } catch (error) {
-        
-        return res.status(500).json({ message:`failed to create interview ${error}` });
+        return res.status(error.statusCode || 500).json({
+            message: error.statusCode ? error.message : "Failed to create interview."
+        });
 
     }
 }
@@ -306,10 +301,20 @@ export const submitAnswer = async (req, res) => {
     try {
         const { interviewId, questionIndex, answer, timeTaken } = req.body;
 
-        const interview = await Interview.findById(interviewId);
-        const question = interview.questions[questionIndex];
+        if (!interviewId || !Number.isInteger(questionIndex)) {
+            return res.status(400).json({ message: "A valid interview and question index are required." });
+        }
 
-        if (!answer) {
+        const interview = await Interview.findOne({ _id: interviewId, userId: req.userId });
+        if (!interview) {
+            return res.status(404).json({ message: "Interview not found." });
+        }
+        const question = interview.questions[questionIndex];
+        if (!question) {
+            return res.status(400).json({ message: "Question index is invalid." });
+        }
+
+        if (typeof answer !== "string" || !answer.trim()) {
             question.score = 0;
             question.feedback = "You did not submit an answer.";
             question.answer = "";
@@ -381,30 +386,44 @@ Answer: ${answer}
             },
         ];
 
-        const aiResponse = await askAi(messages);
-        const parsed = JSON.parse(aiResponse);
-        const feedbackText = typeof parsed.feedback === "string" && parsed.feedback.trim()
-            ? parsed.feedback.trim()
-            : "Answer received; please improve clarity, structure, and relevant details.";
+        const aiResponse = await askAi(messages, { responseMimeType: "application/json" });
+        const parsed = parseJsonResponse(aiResponse);
+        const scoreFields = ["confidence", "communication", "correctness"];
+        if (
+            !parsed ||
+            typeof parsed.feedback !== "string" ||
+            !parsed.feedback.trim() ||
+            !scoreFields.every(field =>
+                Number.isFinite(parsed[field]) && parsed[field] >= 0 && parsed[field] <= 10
+            )
+        ) {
+            return res.status(502).json({ message: "AI returned invalid answer feedback." });
+        }
+        const feedbackText = parsed.feedback.trim();
+        const finalScore = Math.round(
+            scoreFields.reduce((total, field) => total + parsed[field], 0) / scoreFields.length
+        );
 
         question.answer = answer;
         question.confidence = parsed.confidence;
         question.communication = parsed.communication;
         question.correctness = parsed.correctness;
-        question.score = parsed.finalScore;
+        question.score = finalScore;
         question.feedback = feedbackText;
 
         await interview.save();
         return res.status(200).json({ feedback: feedbackText });
     } catch (error) {
-        return res.status(500).json({ message: `failed to submit answer ${error}` });
+        return res.status(error.statusCode || 500).json({
+            message: error.statusCode ? error.message : "Failed to submit answer."
+        });
     }
 }
 
 export const finishInterview = async (req,res)=>{
     try {
         const {interviewId}= req.body;
-        const interview = await Interview.findById(interviewId)
+        const interview = await Interview.findOne({ _id: interviewId, userId: req.userId })
         if(!interview){
             return res.status(400).json({message: "failed to find Interview"})
         }
@@ -477,7 +496,7 @@ export const getMyInterviews = async (req,res)=>{
 
 export const getInterviewReport = async (req,res)=>{
     try{
-        const interview = await Interview.findById(req.params.id)
+        const interview = await Interview.findOne({ _id: req.params.id, userId: req.userId })
         if(!interview){
             return res.status(404).json({message: "Interview not found"});
         }
@@ -521,6 +540,6 @@ export const getInterviewReport = async (req,res)=>{
         });
     }
     catch(error){
- return res.status(500).json({ message:`failed to find currentUser Interview report ${error}` });
+ return res.status(500).json({ message:"Failed to retrieve interview report." });
     }
 }

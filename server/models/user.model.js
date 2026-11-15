@@ -8,7 +8,15 @@ name:{
 email:{
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true,
+},
+firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true,
+    select: false,
 },
 credits:{
     type: Number,

@@ -3,7 +3,7 @@ import {motion, scale} from "motion/react"
 import { FaUserTie,FaBriefcase, FaFileUpload, FaMicrophoneAlt, FaChartLine } from "react-icons/fa";
 import { useState } from "react";
 import axios from 'axios'
-import { ServerUrl } from "../App";
+import { ServerUrl } from "../config/api";
 import { useDispatch, useSelector } from "react-redux";
 import { setUserData } from "../redux/userSlice";
 
@@ -22,6 +22,7 @@ function Step1SetUp({onStart}) {
     const [analyzing, setAnalyzing]=useState(false);
     const [resumeWarning, setResumeWarning]=useState("");
     const [resumeError, setResumeError]=useState("");
+    const [startError, setStartError]=useState("");
 
    const handleUploadResume = async () => {
     if(!resumeFile || analyzing)return;
@@ -32,7 +33,6 @@ function Step1SetUp({onStart}) {
     formdata.append("resume",resumeFile)
     try {
         const result= await axios.post(ServerUrl + "/api/interview/resume",formdata,{withCredentials:true})
-        console.log(result.data)
 
         setRole(result.data.role || "");
         setExperience(result.data.experience|| "");
@@ -40,7 +40,7 @@ function Step1SetUp({onStart}) {
         setSkills(result.data.skills ||[]);
         setResumeText(result.data.resumeText || "");
         setResumeWarning(result.data.warning || "");
-        setAnalysisDone(true);
+        setAnalysisDone(!result.data.warning);
 
         setAnalyzing(false);
 
@@ -53,23 +53,23 @@ function Step1SetUp({onStart}) {
    } 
 
 const handleStart = async () => {
+    setStartError("");
     setLoading(true)
     try {
         const result = await axios.post(ServerUrl + "/api/interview/generate-questions",
              {role, experience, mode, resumeText, projects, skills},{withCredentials:true})
-             console.log(result.data)
              if(userData){
                 dispatch(setUserData({...userData, credits: result.data.creditsLeft}))
              }
-             setLoading(false)
              onStart(result.data)
-
-        
     } catch (error) {
-        console.log(error)
+        setStartError(
+            error?.response?.data?.message ||
+            "Could not start the interview. Please try again."
+        );
+    } finally {
         setLoading(false)
     }
-    
 }
 
 
@@ -217,9 +217,23 @@ const handleStart = async () => {
                     {resumeWarning}
                 </div>
                )}
+               {resumeWarning && resumeText && (
+                <details className="rounded-xl border border-gray-200 p-4 text-gray-700">
+                    <summary className="cursor-pointer font-medium">View extracted resume text</summary>
+                    <p className="mt-3 whitespace-pre-wrap break-words text-sm">
+                        {resumeText.slice(0, 2000)}
+                        {resumeText.length > 2000 ? "…" : ""}
+                    </p>
+                </details>
+               )}
                {resumeError && (
                 <div className="rounded-xl bg-red-100 border border-red-300 p-4 text-red-800">
                     {resumeError}
+                </div>
+               )}
+               {startError && (
+                <div role="alert" className="rounded-xl bg-red-100 border border-red-300 p-4 text-red-800">
+                    {startError}
                 </div>
                )}
 

@@ -4,7 +4,7 @@ import { getAuth ,GoogleAuthProvider } from "firebase/auth";
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_APIKEY,
   authDomain: "terviewiq.firebaseapp.com",
-  projectId: "terviewiq",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: "terviewiq.firebasestorage.app",
   messagingSenderId: "195715932846",
   appId: "1:195715932846:web:0b35c653f355ea90ea833f"

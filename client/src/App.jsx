@@ -1,4 +1,3 @@
-import React from 'react'
 import {Route, Routes} from 'react-router-dom'
 import Home from './pages/Home'
 import Auth from './pages/Auth'
@@ -11,7 +10,7 @@ import { useEffect } from 'react'
 import axios from 'axios'
 import { useDispatch } from 'react-redux'
 import { setUserData } from './redux/userSlice'
-export const ServerUrl = "https://interview-e2zw.onrender.com"
+import { ServerUrl } from './config/api'
 
 
 function App() {
@@ -22,7 +21,12 @@ function App() {
         const result = await axios.get(ServerUrl+"/api/user/current-user",{withCredentials:true})
         dispatch(setUserData(result.data))
     }catch(error){
-        console.log(error);
+        if (error?.response?.status !== 401) {
+            console.error("Unable to restore the current session.", {
+                status: error?.response?.status || "network-error",
+                code: error?.code || "unknown",
+            });
+        }
         dispatch(setUserData(null))
     }
    }

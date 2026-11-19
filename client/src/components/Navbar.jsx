@@ -1,100 +1,116 @@
-import React from "react";
-import {motion } from "motion/react"
-import { useSelector } from "react-redux";
-import {BsRobot, BsCoin} from "react-icons/bs"
-import {HiOutlineLogout} from "react-icons/hi"
-import {FaUserAstronaut} from "react-icons/fa"
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { ServerUrl } from "../config/api";
-import { useDispatch } from "react-redux";
-import { setUserData } from "../redux/userSlice";
-import AuthModel from "../components/AuthModel"
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { BsCoin, BsRobot } from 'react-icons/bs'
+import { FaBars, FaUserAstronaut } from 'react-icons/fa'
+import { HiOutlineLogout } from 'react-icons/hi'
+import { FiClock, FiCreditCard, FiX } from 'react-icons/fi'
+import axios from 'axios'
+import { ServerUrl } from '../config/api'
+import { setUserData } from '../redux/userSlice'
+import AuthModel from './AuthModel'
 
 function Navbar() {
-const {userData} = useSelector((state) => state.user);
-const [showCreditPopup, setShowCreditPopup] = useState(false);
-const [showUserPopup, setShowUserPopup] = useState(false);
-const navigate = useNavigate();
-const dispatch = useDispatch();
-const [showAuth, setShowAuth]=useState(false);
+  const { userData } = useSelector((state) => state.user)
+  const [activeMenu, setActiveMenu] = useState('')
+  const [showAuth, setShowAuth] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
-const handleLogout =async () => {
-    try{
-          await axios.get(ServerUrl + "/api/auth/logout", {withCredentials: true});
-          dispatch(setUserData(null));
-          setShowCreditPopup(false);
-          setShowUserPopup(false);
-            navigate("/");
-    }catch(err){
-            console.log(err);
+  const handleLogout = async () => {
+    setLogoutError('')
+    try {
+      await axios.get(ServerUrl + '/api/auth/logout', { withCredentials: true })
+      dispatch(setUserData(null))
+      setActiveMenu('')
+      navigate('/')
+    } catch (error) {
+      console.error('Unable to sign out.', {
+        status: error?.response?.status || 'network-error',
+        code: error?.code || 'unknown',
+      })
+      setLogoutError('Could not sign out. Please try again.')
     }
-}
+  }
 
-    return (
-        <div className="bg-[#f3f3f3] flex justify-center px-4 pt-6 ">
-        <motion.div
-        initial={{ opacity: 0, y: -40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3}}
-         className="w-full max-w-6xl flex justify-between items-center relative bg-white rounded-[24px] shadow-sm border border-gray-200 px-8 py-4">
-       <div className="flex items-center gap-3 cursor-pointer ">
-        <div className="bg-black text-white p-2 rounded-lg">
-         <BsRobot size={18}/>
-        </div>
-        <h1 className="font-semibold hidden md:block text-lg">InterviewIQ.AI</h1>
-       </div>
-       <div className="flex items-center gap-6 relative">
-        <div className="relative ">
-            <button  onClick={() => {
-                if(!userData){
-                    setShowAuth(true)
-                    return;
-                }
-                setShowCreditPopup(!showCreditPopup);
-                setShowUserPopup(false)
-            }}   className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full text-md hover:bg-gray-200 transition">
-                <BsCoin size={20} />
-                {userData?.credits || 0}
-            </button>
-            {showCreditPopup && (
-                <div className="absolute right-[-50px] mt-3 w-64 bg-white shadow-xl border border-gray-200 rounded-xl  p-5 z-50">
-                    <p className="text-sm text-gray-600 mb-4">Need more credits to to continue interviews?</p>
-                    <button onClick={() => navigate("/pricing")} className="w-full bg-black text-white py-2 rounded-lg text-sm">Buy more Credits</button>
-                </div>
+  const openProtectedMenu = (menu) => {
+    if (!userData) {
+      setShowAuth(true)
+      return
+    }
+    setActiveMenu(activeMenu === menu ? '' : menu)
+  }
+
+  return (
+    <>
+      <header className="site-header">
+        <nav className="site-nav" aria-label="Main navigation">
+          <Link className="brand" to="/" aria-label="InterviewIQ.AI home">
+            <span className="brand-mark"><BsRobot size={18} /></span>
+            <span className="brand-name">InterviewIQ<span>.AI</span></span>
+          </Link>
+          <div className={`nav-links${menuOpen ? ' nav-links--open' : ''}`}>
+            <a href="/#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
+            <a href="/#capabilities" onClick={() => setMenuOpen(false)}>Capabilities</a>
+            <Link to="/pricing" onClick={() => setMenuOpen(false)}>Credits</Link>
+          </div>
+          <div className="nav-actions">
+            {userData ? (
+              <div className="nav-account">
+                <button type="button" className="credit-chip" onClick={() => openProtectedMenu('credits')} aria-expanded={activeMenu === 'credits'}>
+                  <BsCoin aria-hidden="true" />
+                  <span>{userData.credits ?? 0}</span>
+                </button>
+                {activeMenu === 'credits' && (
+                  <div className="nav-popover">
+                    <p>Available balance<strong>{userData.credits ?? 0} credits</strong></p>
+                    <button type="button" onClick={() => { setActiveMenu(''); navigate('/pricing') }}>
+                      <FiCreditCard aria-hidden="true" /> Explore credit plans
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="avatar-button"
+                  onClick={() => openProtectedMenu('user')}
+                  aria-label="Open account menu"
+                  aria-expanded={activeMenu === 'user'}
+                >
+                  {userData.name?.trim()?.[0]?.toUpperCase() || <FaUserAstronaut aria-hidden="true" />}
+                </button>
+                {activeMenu === 'user' && (
+                  <div className="nav-popover">
+                    <p><strong>{userData.name || 'Your account'}</strong>{userData.email || ''}</p>
+                    {logoutError && <p className="auth-error" role="alert">{logoutError}</p>}
+                    <button type="button" onClick={() => { setActiveMenu(''); navigate('/history') }}>
+                      <FiClock aria-hidden="true" /> Interview history
+                    </button>
+                    <button type="button" className="danger" onClick={handleLogout}>
+                      <HiOutlineLogout aria-hidden="true" /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button type="button" className="button nav-cta" onClick={() => setShowAuth(true)}>Get started</button>
             )}
-        </div>
-        <div className="relative ">
-            <button  onClick={() => {
-                 if(!userData){
-                    setShowAuth(true)
-                    return;
-                }
-                setShowUserPopup(!showUserPopup);
-                setShowCreditPopup(false)
-            }}  className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center font-semibold">
-            {userData?userData?.name.slice(0,1).toUpperCase():<FaUserAstronaut size={16} />}
+            <button
+              type="button"
+              className="icon-button menu-toggle"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <FiX aria-hidden="true" /> : <FaBars aria-hidden="true" />}
             </button>
-            {showUserPopup && (
-               <div className="absolute right-0 mt-3 w-48 bg-white shadow-xl border border-gray-200 rounded-xl p-4 z-50">
-                <p className="text-md text-blue-500 font-medium mb-1" >{userData?.name}</p>
-                <button onClick={() => navigate("/history")} className="w-full text-left text-sm py-2 hover:text-black text-gray-600">Interview History</button>
-                <button  onClick={handleLogout} className="w-full text-left text-sm py-2 flex items-center gap-2 text-red-500">
-                    <HiOutlineLogout size={16} />
-                    Logout
-                 </button>
-               </div>
-            )}  
-        </div>
-     
-       </div>
-
-        </motion.div>
-        {showAuth && <AuthModel onClose={()=>setShowAuth(false)}/>}
-
-        </div>
-    )
+          </div>
+        </nav>
+      </header>
+      {showAuth && <AuthModel onClose={() => setShowAuth(false)} />}
+    </>
+  )
 }
 
 export default Navbar

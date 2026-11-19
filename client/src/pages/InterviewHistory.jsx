@@ -1,100 +1,112 @@
-import React,{useState,  useEffect} from "react";
-import { useNavigate } from "react-router-dom";
-import { ServerUrl } from "../config/api";
-import axios from "axios";
-import { FaArrowLeft } from "react-icons/fa";
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { BsBriefcase } from 'react-icons/bs'
+import { FiArrowLeft, FiArrowRight, FiClock } from 'react-icons/fi'
+import axios from 'axios'
+import { ServerUrl } from '../config/api'
 
 function InterviewHistory() {
-const [interviews, setInterviews] = useState([]);
-const navigate = useNavigate();
+  const [interviews, setInterviews] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
 
-useEffect(() => {
-const getMyInterviews = async () => {
-try{
-    const result = await axios.get(ServerUrl + "/api/interview/get-interviews", {withCredentials: true});
-   
-    setInterviews(result.data);
-}
-catch (error) {
-    console.error(error);
-}
-}
-getMyInterviews();
+  const requestInterviews = useCallback(
+    () => axios.get(ServerUrl + '/api/interview/get-interviews', { withCredentials: true }),
+    []
+  )
 
-},[]);
+  const handleLoadError = (requestError) => {
+      console.error('Unable to load interview history.', {
+        status: requestError?.response?.status || 'network-error',
+        code: requestError?.code || 'unknown',
+      })
+      setError(requestError?.response?.data?.message || 'Your interview history could not be loaded.')
+  }
 
+  useEffect(() => {
+    let active = true
+    requestInterviews()
+      .then((result) => {
+        if (active) setInterviews(result.data)
+      })
+      .catch((requestError) => {
+        if (active) handleLoadError(requestError)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [requestInterviews])
 
+  const retryLoading = () => {
+    setLoading(true)
+    setError('')
+    requestInterviews()
+      .then((result) => setInterviews(result.data))
+      .catch(handleLoadError)
+      .finally(() => setLoading(false))
+  }
 
-    return (
-        <div className=" min-h-screen bg-linear-to-r from-gray-50 to-emerald-50 py-10">
-            <div className="w-[90vw] lg:w-[70vw] max-w-[90%] mx-auto">
-                <div className="mb-10 w-full flex flex items-start gap-4 flex-wrap">
-                    <button
-                    onClick={() => navigate("/")}
-                     className= "mt-1 p-3 rounded-full bg-white shadow hover:shadow-md transition">
-                        <FaArrowLeft className="text-gray-600" /></button>
-
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800 flex-nowrap">Interview History</h1>
-                        <p className="text-gray-500 mt-2">Track your past interview experiences reports</p>
-                    </div>
-                </div>
-
-               { interviews.length === 0 ? 
-                    <div className="bg-white p-10 rounded-2xl shadow text-center" >
-                        <p className="text-gray-500">No interviews found. Start your journey by scheduling an interview!</p>
-                    </div>
-                       :
-                    <div className="grid gap-6 ">
-                      { interviews.map((item, index)=>(
-                       <div key={index}
-                       onClick={() => navigate(`/report/${item._id}`)}
-                        className="bg-white p-6 rounded-2xl shadow-md
-                        hover:shadow-xl transiton-all duration-300 cursor-pointer border
-                         border-gray-100"> 
-                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div >
-                                <h3 className="text-lg font-semibold text-gray-800">
-                                    {item.role}
-                                </h3>
-                                <p className="text-gray-500 text-sm mt-1">{item.experience}. {item.mode}
-                                 </p>
-                                 <p className="text-xs text-gray-400 mt-2">
-                                    {new Date(item.createdAt).toLocaleDateString()}
-                                 </p>
-                            </div>
-
-                            <div className="flex items-center gap-6">
-                                {/* score */}
-                                <div className="text-right">
-                                    <p className="text-xl font-bold text-emerald-600">{item.finalScore || 0}/10</p>
-                                    <p className="text-gray-400 text-xs">Overall Score</p>
-                                </div>
-
-                                {/* Status Badge */}
-                                <span
-                                className={`px-4 py-1 rounded-full text-xs font-medium ${
-                                    item.status?.trim().toLowerCase() === "completed"
-                                        ? "bg-emerald-100 text-emerald-800"
-                                        : "bg-yellow-100 text-yellow-700"
-
-                                }`}>
-                                    {item.status}
-                                </span>
-                            </div>
-                         </div>
-                         
-                         </div>
-                    
-                    ))
-                      }
-                    </div>
-                }
-
-            </div>
-         
+  return (
+    <main className="subpage">
+      <header className="subpage-header">
+        <button type="button" className="icon-button" onClick={() => navigate('/')} aria-label="Back to home">
+          <FiArrowLeft aria-hidden="true" />
+        </button>
+        <div>
+          <span className="eyebrow">Your preparation</span>
+          <h1>Interview history</h1>
+          <p>Pick up where you left off and revisit your interview feedback.</p>
         </div>
-    );
+      </header>
+
+      {loading ? (
+        <div className="loading-state" role="status">Loading your interviews…</div>
+      ) : error ? (
+        <div className="error-state" role="alert">
+          <p>{error}</p>
+          <button type="button" className="button button--outline" onClick={retryLoading}>Try again</button>
+        </div>
+      ) : interviews.length === 0 ? (
+        <section className="empty-state">
+          <div className="empty-icon"><BsBriefcase aria-hidden="true" /></div>
+          <h2>Your practice starts here</h2>
+          <p>Completed interview sessions will appear here, along with their scores and feedback.</p>
+          <button type="button" className="button" onClick={() => navigate('/interview')}>
+            Start an interview <FiArrowRight aria-hidden="true" />
+          </button>
+        </section>
+      ) : (
+        <section className="history-list" aria-label="Past interview sessions">
+          {interviews.map((item) => {
+            const date = item.createdAt ? new Date(item.createdAt) : null
+            const dateLabel = date && !Number.isNaN(date.getTime())
+              ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+              : 'Date unavailable'
+            const completed = item.status?.trim().toLowerCase() === 'completed'
+            return (
+              <button type="button" className="history-item" key={item._id} onClick={() => navigate(`/report/${item._id}`)}>
+                <div className="history-role">
+                    <span className="history-icon"><BsBriefcase aria-hidden="true" /></span>
+                    <div className="history-copy">
+                    <span className="block text-xs font-semibold uppercase tracking-wide text-gray-400">{item.mode || 'Interview'}</span>
+                    <h2>{item.role || 'Interview session'}</h2>
+                      <span className="history-date"><span>{item.experience || 'Experience not specified'}</span><span aria-hidden="true">·</span><FiClock aria-hidden="true" /> {dateLabel}</span>
+                  </div>
+                </div>
+                <span className="history-meta">
+                  <span className="history-score">{item.finalScore ?? 0}<span>/10 score</span></span>
+                  <span className={`status-badge${completed ? ' status-badge--complete' : ''}`}>{item.status || 'In progress'}</span>
+                  <FiArrowRight aria-hidden="true" />
+                </span>
+              </button>
+            )
+          })}
+        </section>
+      )}
+    </main>
+  )
 }
 
-export default InterviewHistory;
+export default InterviewHistory

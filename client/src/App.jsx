@@ -1,17 +1,17 @@
-import {Route, Routes} from 'react-router-dom'
-import Home from './pages/Home'
-import Auth from './pages/Auth'
-import InterviewPage from './pages/InterviewPage'
-import InterviewHistory from './pages/InterviewHistory'
-import Pricing from './pages/Pricing'
-import InterviewReport from './pages/InterviewReport'
-
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import axios from 'axios'
 import { useDispatch } from 'react-redux'
 import { setUserData } from './redux/userSlice'
 import { ServerUrl } from './config/api'
+import './App.css'
 
+const Home = lazy(() => import('./pages/Home'))
+const Auth = lazy(() => import('./pages/Auth'))
+const InterviewPage = lazy(() => import('./pages/InterviewPage'))
+const InterviewHistory = lazy(() => import('./pages/InterviewHistory'))
+const Pricing = lazy(() => import('./pages/Pricing'))
+const InterviewReport = lazy(() => import('./pages/InterviewReport'))
 
 function App() {
   const dispatch = useDispatch()
@@ -33,15 +33,16 @@ function App() {
    getUser()
 },[dispatch])
   return (
-<Routes>
-  <Route path='/' element={<Home />} />
-  <Route path='/auth' element={<Auth />} />
-  <Route path='/interview' element={<InterviewPage />} />
-  <Route path='/history' element={<InterviewHistory />} />
-  <Route path='/pricing' element={<Pricing />} />
-  <Route path='/report/:id' element={<InterviewReport />} />
-  
-</Routes>
+  <Suspense fallback={<main className="subpage"><div className="loading-state" role="status">Loading InterviewIQ.AI…</div></main>}>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/interview" element={<InterviewPage />} />
+      <Route path="/history" element={<InterviewHistory />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/report/:id" element={<InterviewReport />} />
+    </Routes>
+  </Suspense>
   )
 }
 

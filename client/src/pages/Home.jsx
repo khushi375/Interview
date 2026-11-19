@@ -1,285 +1,189 @@
-import React from 'react'
-import Navbar from '../components/Navbar'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
-import { motion } from 'motion/react';
-import {BsRobot,BsMic,BsClock,BsBarChart,BsFileEarmarkText} from "react-icons/bs";
-import { HiSparkles } from 'react-icons/hi';
-import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import AuthModel from "../components/AuthModel"
-import hrImg from "../assets/HR.png"
-import techImg from "../assets/tech.png"
-import confidenceImg from "../assets/confi.png"
-import creditImg from "../assets/credit.png"
-import evalImg from "../assets/ai-ans.png"
-import resumeImg from "../assets/resume.png"
-import pdfImg from "../assets/pdf.png"
-import analyticsImg from "../assets/history.png"
-import Footer from '../components/Footer';
+import { useNavigate } from 'react-router-dom'
+import {
+  BsBarChart, BsBriefcase, BsClock, BsFileEarmarkText, BsMic,
+  BsShieldCheck,
+} from 'react-icons/bs'
+import { HiSparkles } from 'react-icons/hi'
+import { FiArrowUpRight } from 'react-icons/fi'
+import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
+import AuthModel from '../components/AuthModel'
+import hrImg from '../assets/HR.png'
+import techImg from '../assets/tech.png'
+import confidenceImg from '../assets/confi.png'
+import creditImg from '../assets/credit.png'
+import evalImg from '../assets/ai-ans.png'
+import resumeImg from '../assets/resume.png'
+import pdfImg from '../assets/pdf.png'
+import analyticsImg from '../assets/history.png'
 
 function Home() {
-  const {userData}=useSelector((state)=>state.user)
-  const [showAuth, setShowAuth]=useState(false);
-  const navigate = useNavigate();
+  const { userData } = useSelector((state) => state.user)
+  const [showAuth, setShowAuth] = useState(false)
+  const navigate = useNavigate()
+
+  const goTo = (path) => {
+    if (!userData) {
+      setShowAuth(true)
+      return
+    }
+    navigate(path)
+  }
+
+  const steps = [
+    { title: 'Choose your role', desc: 'Set a role, experience level, and interview style to tailor your practice.', icon: <BsBriefcase /> },
+    { title: 'Practice out loud', desc: 'Answer AI-generated questions with voice input or by typing your response.', icon: <BsMic /> },
+    { title: 'Learn from feedback', desc: 'Review question-by-question feedback and download your report as a PDF.', icon: <BsBarChart /> },
+  ]
+  const capabilities = [
+    { image: evalImg, icon: <BsBarChart />, title: 'Question-level feedback', desc: 'See scores and AI feedback for each answer, alongside your overall performance.' },
+    { image: resumeImg, icon: <BsFileEarmarkText />, title: 'Resume-informed practice', desc: 'Upload a PDF resume to extract relevant role, skills, and project context for your session.' },
+    { image: pdfImg, icon: <BsFileEarmarkText />, title: 'A report you can keep', desc: 'Review strengths and improvement areas, then export your interview report to PDF.' },
+    { image: analyticsImg, icon: <BsClock />, title: 'Session history', desc: 'Return to completed interviews and compare your results over time.' },
+  ]
+  const modes = [
+    { img: hrImg, title: 'HR interview', desc: 'Practice behavioral and communication questions.' },
+    { img: techImg, title: 'Technical interview', desc: 'Work through questions tailored to your chosen role.' },
+    { img: confidenceImg, title: 'Voice practice', desc: 'Answer aloud with browser speech recognition where supported.' },
+    { img: creditImg, title: 'Flexible credits', desc: 'Choose from the available credit plans when you need more practice.' },
+  ]
 
   return (
-  <div
-  className="min-h-screen flex flex-col"
-  style={{
-    background:
-      "radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 45%), linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #eef7f2 100%)",
-  }}
->
-
+    <div className="landing">
       <Navbar />
-      <div className="flex-1 px-6 py-20"> 
-        <div className="max-w-6xl mx-auto">
-        <div className="flex justify-center mb-6">
-           <div className="bg-gray-100 text-gray-600 text-sm px-4 py-2 rounded-full flex items-center gap-2">
-            <HiSparkles size={16 } className='bg-green-50 text-green-600'/>AI Powered Smart Interview Platform
-           </div>
-          
-
-        </div>
-         <div className="text-center mb-28">
-            <motion.h1
-            initial={{opacity:0,y:30}}
-            animate={{opacity:1,y:0}}
-            transition={{duration:0.6}}
-             className='text-4xl md:text-6xl font-semibold leading-tight max-w-4xl mx-auto'>
-              Practice Interviews with <span className='relative inline-block'>
-                <span className='bg-green-100 text-green-600 px-5 py-1 rounded-full'>
-                  AI Intelligence
-                </span>
-              </span>
-
-            </motion.h1>
-            <motion.p 
-            initial={{opacity:0}}
-            animate={{opacity:1}}
-            transition={{duration:0.8}}
-             className="text-gray-500 mt-6 max-w-2xl mx-auto text-lg" >
-              Role-based mock interviews with smart follow-ups, adaptive difficulty and real-time performance evaluation.
-            </motion.p>
-            <div className="flex flex-wrap justify-center gap-4 mt-10">
-              <motion.button    onClick={()=>{
-                if(!userData){
-                  setShowAuth(true)
-                  return;
-                }
-                navigate("/interview")
-              }}
-               whileHover={{ opacity:0.9, scale: 1.03 }}
-            whileTap={{ opacity:1, scale: 0.98 }}
-            className='bg-black text-white px-10 py-3 rounded-full hover:opacity-90 transition shadow-md'>
-              Start Interview
-
-              </motion.button>
-
-              <motion.button    onClick={()=>{
-                if(!userData){
-                  setShowAuth(true)
-                  return;
-                }
-                navigate("/history")
-              }}
-               whileHover={{ opacity:0.9, scale: 1.03 }}
-            whileTap={{ opacity:1, scale: 0.98 }}
-            className='border border-gray-300 px-10 py-3 rounded-full hover:bg-gray-100 transition'>
-              View History
-
-              </motion.button>
+      <main>
+        <section className="hero">
+          <div className="hero-inner">
+            <div className="hero-copy">
+              <span className="hero-badge"><HiSparkles aria-hidden="true" /> Your next interview starts here</span>
+              <h1>Practice with purpose. <span>Show up with confidence.</span></h1>
+              <p>Role-based AI interview practice with thoughtful feedback on your answers, communication, and confidence.</p>
+              <div className="hero-buttons">
+                <button type="button" className="button" onClick={() => goTo('/interview')}>
+                  Start practicing <FiArrowUpRight aria-hidden="true" />
+                </button>
+                <button type="button" className="button button--light-outline" onClick={() => goTo('/history')}>
+                  View your history
+                </button>
+              </div>
+              <div className="hero-note"><BsShieldCheck aria-hidden="true" /> Secure Google sign-in · Your practice, on your terms</div>
             </div>
-           </div>
-           <div className="flex flex-col md:flex-row justify-center items-center gap-10 mb-28">
-            {
-              [
-                {
-                  icon: <BsRobot size={24}/>,
-                  step: "STEP 1",
-                  title: "Role & Experience Selection",
-                  desc: "AI adjusts difficulty based on selected job role."
-                },
-                {
-                  icon: <BsMic size={24}/>,
-                  step: "STEP 2",
-                  title: "Smart Voice Interview",
-                  desc: "Dynamic follow-up questions based on your answers."
-                },
-                {
-                  icon: <BsClock size={24}/>,
-                  step: "STEP 3",
-                  title: "Timer based Simulation",
-                  desc: "Real Interview pressure with time tracking."
-                }
-              ].map((item,index)=>(
-                <motion.div key={index} 
-                initial={{opacity:0, y:60}}
-                whileInView={{opacity:1, y:0}}
-                transition={{duration:0.6 + index*0.2}}
-                whileHover={{rotate:0,scale: 1.06}}
-
-
-                className={`relative bg-white rounded-3xl border-2 border-green-100 hover:border-green-500
-                p-10 w-80 max-w-[90%] shadow-md hover:shadow-2xl transition-all duration-300
-                ${index===0 ? "rotate-[-4deg]": ""}
-                ${index===1? "rotate-[3deg] md:mt-6 shadow-xl ":""}
-                ${index===2? "rotate-[-3deg]":""}`}>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border-2 border-green-500 text-green-600 w-16 h-16 
-                  rounded-2xl flex items-center justify-center shadow-lg">
-                    {item.icon} </div>
-                    <div className="pt-10 text-center">
-                      <div className='text-xs text-green-600 font-semibold mb-2 tracking-wider' >{item.step}</div>
-                      <h3 className='font-semibold mb-3 text-lg'>{item.title}</h3>
-                      <p className='text-sm text-gray-500 leading-relaxed'>{item.desc}</p>
+            <div className="product-preview" aria-label="Illustration of the InterviewIQ interview workspace">
+              <div className="preview-window">
+                <div className="preview-top">
+                  <span className="preview-dot" /><span className="preview-dot" /><span className="preview-dot" />
+                  <span className="preview-label">INTERVIEWIQ.AI / PRACTICE</span>
+                </div>
+                <div className="preview-content">
+                  <div className="preview-side" aria-hidden="true">
+                    <div className="preview-side-mark" />
+                    <div className="preview-side-line active" />
+                    <div className="preview-side-line" />
+                    <div className="preview-side-line" />
+                    <div className="preview-side-line" />
+                  </div>
+                  <div className="preview-main">
+                    <div className="preview-kicker">Interview workspace</div>
+                    <h3>Make every answer count.</h3>
+                    <div className="preview-session">
+                      <div><span className="preview-session-label">PRACTICE MODE</span><strong>Role-based interview</strong></div>
+                      <span className="preview-pill">AI guided</span>
                     </div>
-
-                </motion.div>
-              ))
-            }
-           </div>
-
-           
-
-           <div className="mb-32">
-            <motion.h2
-            initial={{opacity:0, y:20}}
-            whileInView={{opacity:1, y:0}}
-            transition={{duration:0.6 }}
-            className='text-4xl font-semibold text-center mb-16'>
-              Advance AI{" "}<span className='text-green-600'>Capabilities</span>
-
-            </motion.h2>
-             <div className="grid md:grid-cols-2 gap-10">
-              {
-                [
-                  {
-                    image:evalImg,
-                    icon: <BsBarChart size={20}/>,
-                    title: "AI Answer Evaluation",
-                    desc: "Scores communication, technical accuracy and confidence."
-                  },
-                  {
-                    image:resumeImg,
-                    icon: <BsFileEarmarkText size={20}/>,
-                    title: "Resume Based Interview",
-                    desc: "Project-specific questions based on uploaded resume."
-                  },
-                  {
-                    image:pdfImg,
-                    icon: <BsFileEarmarkText size={20}/>,
-                    title: "Download PDF Report",
-                    desc: "Detailed strengths, weaknesses and improvement insights."
-                  },
-                  {
-                    image:analyticsImg,
-                    icon: <BsBarChart size={20}/>,
-                    title: "History & Analytics",
-                    desc: "Track progress with performance graphs and topic analysis."
-                  },
-                ].map((item,index)=>(
-                  <motion.div key={index}
-                   initial={{opacity:0, y:30}}
-                whileInView={{opacity:1, y:0}}
-                transition={{duration:0.5 , delay: index*0.1}}
-                whileHover={{scale: 1.02}}
-                  className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all">
-                    <div className="flex flex-col md:flex-row items-center gap-8">
-                      <div className="w-full md:w-1/2 flex justify-center">
-                      <img src={item.image} alt={item.title} className='w-full h-auto object-contain max-h-64' />
-                      </div>
-
-                      <div className="w-full md:w-1/2">
-                      <div className="bg-green-50 text-green-600 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
-                        {item.icon}
-                      </div>
-                      <h3 className='font-semibold mb-3 text-xl '>{item.title}</h3>
-                      <p className='text-gray-500 text-sm leading-relaxed'>{item.desc}</p>
-                      </div>
+                    <div className="preview-question">
+                      <small>YOUR PRACTICE, YOUR PACE</small>
+                      <p>Prepare with tailored questions, answer in your own words, and get feedback after each response.</p>
                     </div>
-                  </motion.div>
-                ))
-              }
-             </div>
-
-
-           </div>
-
-           <div className="mb-32">
-            <motion.h2
-            initial={{opacity:0, y:20}}
-            whileInView={{opacity:1, y:0}}
-            transition={{duration:0.6 }}
-            className='text-4xl font-semibold text-center mb-16'>
-              Multiple Interview{" "}<span className='text-green-600'>Modes</span>
-
-            </motion.h2>
-             <div className="grid md:grid-cols-2 gap-10">
-              {
-                [
-                  {
-                    img:hrImg,
-                    title: "HR Interview Mode",
-                    desc: "Behavioral and communication based evaluation."
-                  },
-                  {
-                   img:techImg,
-                    title: "Technical Mode",
-                    desc: "Deep technical questioning based on selected role."
-                  },
-                  {
-                     img:confidenceImg,
-                    title: "Confidence Detection",
-                    desc: "Basic tone and voice analysis insights."
-                  },
-                  {
-                     img:creditImg,
-                    title: "Credits System",
-                    desc: "Unlock premium interview sessions easily. "
-                  },
-                ].map((mode,index)=>(
-                  <motion.div key={index}
-                   initial={{opacity:0, y:30}}
-                whileInView={{opacity:1, y:0}}
-                transition={{duration:0.5 , delay: index*0.1}}
-                whileHover={{y: -6}}
-                  className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all">
-
-                    <div className="flex  items-center justify-between gap-6">
-                      <div className="w-1/2">
-                      <h3 className='font-semibold text-xl mb-3'>{mode.title}</h3>
-                      <p className='text-gray-500 text-sm leading-relaxed'>{mode.desc}</p>
+                    <div className="preview-wave" aria-hidden="true">
+                      {[10, 17, 12, 24, 15, 21, 11, 25, 16, 10, 19, 13, 23, 12, 17, 9, 20, 13, 25, 11, 18, 12, 22, 10, 16, 12, 23, 15, 19, 9, 14].map((height, index) => (
+                        <span key={index} style={{ height }} />
+                      ))}
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                    <div className="w-1/2 flex justify-end">
-                    <img src={mode.img} alt={mode.title} 
-                    className='w-28 h-28 object-contain'/>
-                    </div>
-                    </div>
-                  </motion.div>
-                ))
-              }
-             </div>
+        <section className="landing-section" id="how-it-works">
+          <div className="content-width">
+            <div className="section-heading">
+              <span className="eyebrow">A clear path to better answers</span>
+              <h2 className="section-title">Practice that feels like progress.</h2>
+              <p className="section-copy">A simple, focused flow that takes you from interview setup to feedback you can act on.</p>
+            </div>
+            <div className="process-grid">
+              {steps.map((step, index) => (
+                <article className="process-item" key={step.title}>
+                  <span className="step-number">STEP 0{index + 1}</span>
+                  <div className="process-icon" aria-hidden="true">{step.icon}</div>
+                  <h3>{step.title}</h3>
+                  <p>{step.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
+        <section className="landing-section landing-section--tint" id="capabilities">
+          <div className="content-width">
+            <div className="section-heading">
+              <span className="eyebrow">Built around your preparation</span>
+              <h2 className="section-title">Useful insight, without the noise.</h2>
+              <p className="section-copy">Every capability is designed to support the interview practice already in InterviewIQ.AI.</p>
+            </div>
+            <div className="feature-grid">
+              {capabilities.map((feature) => (
+                <article className="feature-item" key={feature.title}>
+                  <div className="feature-art"><img src={feature.image} alt="" loading="lazy" /></div>
+                  <div className="feature-copy">
+                    <div className="feature-icon" aria-hidden="true">{feature.icon}</div>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.desc}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
-           </div>
+        <section className="landing-section">
+          <div className="content-width">
+            <div className="section-heading">
+              <span className="eyebrow">Practice your way</span>
+              <h2 className="section-title">One workspace. Different ways to prepare.</h2>
+              <p className="section-copy">Choose your interview focus and use the tools that fit the way you like to practice.</p>
+            </div>
+            <div className="mode-strip">
+              {modes.map((mode) => (
+                <article className="mode-item" key={mode.title}>
+                  <img src={mode.img} alt="" loading="lazy" />
+                  <h3>{mode.title}</h3>
+                  <p>{mode.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
-
-
-
-
-
-
-
-
-
-
-
-
-      </div>
-      </div>
-      {showAuth && <AuthModel onClose={()=>setShowAuth(false)}/>}
-        <Footer/>
+        <section className="landing-section landing-section--tint">
+          <div className="content-width">
+            <div className="closing-cta">
+              <div>
+                <h2>Ready to make your next answer stronger?</h2>
+                <p>Start a practice session and get a clearer picture of what you already do well—and what to work on next.</p>
+              </div>
+              <button type="button" className="button" onClick={() => goTo('/interview')}>
+                Start an interview <FiArrowUpRight aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+      {showAuth && <AuthModel onClose={() => setShowAuth(false)} />}
     </div>
   )
 }
